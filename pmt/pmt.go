@@ -28,3 +28,10 @@ func Amortized(a money.Amount, pir percent.Percent, pn enum.Period) pmtOpt {
 		return
 	}
 }
+
+func InterestOnly(a money.Amount, pir percent.Percent, pn enum.Period) pmtOpt {
+	return func(pmt *pmt) (amount money.Amount) {
+		//amount.Amount = currency.USD.Amount()
+		return
+	}
+}

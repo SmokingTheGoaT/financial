@@ -1,8 +1,8 @@
 package main
 
 import (
+	"financial/percent"
 	"fmt"
-	"github.com/shopspring/decimal"
 	"time"
 )
 
@@ -41,7 +41,11 @@ func main() {
 	//res, _ := c.Do(req)
 	//body, _ := io.ReadAll(res.Body)
 	//fmt.Println(string(body))
+	//d := percent.newDecimal("20%")
+	//d2 := decimal.NewFromInt(100)
+	//fmt.Println(d.Mul(d2).String())
 
-	d := decimal.NewFromFloat(float64(10) / float64(100))
-	fmt.Print(d.String())
+	p := percent.New("20%")
+	fmt.Println(p.String())
+	fmt.Println(p.Decimal().String())
 }
