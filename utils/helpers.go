@@ -1,53 +1,38 @@
-package percent
+package utils
 
 import (
 	"fmt"
-	"github.com/shopspring/decimal"
 	"strconv"
 	"strings"
 )
 
 type (
-	unit struct {
-		v decimal.Decimal
-	}
-
-	Percent interface {
-		Decimal() decimal.Decimal
-		String() (value string)
-	}
+	StringOption func(str string) string
 )
 
-func New(i interface{}) Percent {
-	v := newDecimal(i)
-	return &unit{
-		v: v,
+func RemoveStrings(m map[string]string) StringOption {
+	return func(str string) (res string) {
+		res = str
+		for i, v := range m {
+			res = strings.Replace(str, i, v, -1)
+		}
+		return
 	}
 }
 
-func (u *unit) Decimal() decimal.Decimal {
-	return u.v
-}
-
-func (u *unit) String() (value string) {
-	d2 := decimal.NewFromInt(100)
-	value = fmt.Sprintf("%s%%", u.v.Mul(d2).String())
-	return
-}
-
-func newDecimal(i interface{}) (d decimal.Decimal) {
-	pf := parseFloat(i)
-	v := pf / float64(100)
-	d = decimal.NewFromFloat(v)
-	return
-}
-
-func parseFloat(i interface{}) (d float64) {
+func ParseFloat(i interface{}, opts ...interface{}) (d float64) {
 	var err error
 	switch i.(type) {
 	case string:
 		str := i.(string)
-		str = strings.Trim(str, "%")
+		if len(opts) > 0 {
+			opt, ok := opts[0].(StringOption)
+			if !ok {
+				panic(fmt.Errorf("trying to parse a string float with added operation on string, " +
+					"missing StringOption"))
+			}
+			str = opt(str)
+		}
 		d, err = strconv.ParseFloat(str, 64)
 		if err != nil {
 			panic(d)
@@ -74,6 +59,8 @@ func parseFloat(i interface{}) (d float64) {
 		d = float64(i.(uint64))
 	case float32:
 		d = float64(i.(float32))
+	case float64:
+		d = i.(float64)
 	default:
 		panic(fmt.Errorf("interface does not support a numeric string, int, uint or float32"))
 	}

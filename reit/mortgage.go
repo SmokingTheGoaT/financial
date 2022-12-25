@@ -1,34 +1,38 @@
 package reit
 
 import (
-	"financial/enum"
-	"financial/money"
-	"financial/percent"
-	"financial/pmt"
+	"financial/utils/currency"
+	"financial/utils/percent"
+	"financial/utils/types"
 )
 
 type (
 	MortgageRequest struct {
-		PropertySalePrice money.Amount
+		PropertySalePrice currency.Amount
 		LoanToValueRatio  percent.Percent
-		DownPayment       money.Amount
-		ClosingCosts      money.Amount
-		Principal         money.Amount
+		DownPayment       currency.Amount
+		ClosingCosts      currency.Amount
+		Principal         currency.Amount
 		InterestRate      percent.Percent
-		Term              enum.Period
+		Term              types.Period
 	}
 
 	MortgageResponse struct {
-		MonthlyMortgage money.Amount
-		MonthlyNet      money.Amount
-		AnnualizedNet   money.Amount
+		MonthlyMortgage currency.Amount
+		MonthlyNet      currency.Amount
+		AnnualizedNet   currency.Amount
 		AnnualizedROI   percent.Percent
 	}
 )
 
 func Mortgage(request MortgageRequest) (res MortgageResponse) {
 	res = MortgageResponse{}
-	res.MonthlyMortgage = pmt.New(pmt.Amortized(
-		request.PropertySalePrice, request.InterestRate, request.Term))
+	//res.MonthlyMortgage = loan.New(
+	//	loan.Amortized(
+	//		request.PropertySalePrice,
+	//		request.InterestRate,
+	//		request.Term,
+	//	),
+	//)
 	return
 }
