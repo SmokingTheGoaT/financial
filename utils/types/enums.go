@@ -53,3 +53,7 @@ const (
 func (pd PaymentDue) String() string {
 	return [...]string{"EndOfPeriod", "BeginningOfPeriod"}[pd]
 }
+
+func (pd PaymentDue) CompareTo(pd2 PaymentDue) bool {
+	return pd == pd2
+}
