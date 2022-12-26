@@ -87,8 +87,8 @@ func PV(rate percent.Percent, nper types.Period, pmt decimal.Decimal, fv decimal
 	}()
 	if common.Raisable(rate.Decimal(), nper.Amount()) {
 		err = fmt.Errorf("r is not raisable to nper (r is less than -1 and nper not an integer")
-	} else if common.Not(pmt.Equal(decimal.NewFromInt(0))) ||
-		common.Not(fv.Equals(decimal.NewFromFloat(0))) {
+	} else if pmt.Equal(decimal.NewFromInt(0)) ||
+		fv.Equals(decimal.NewFromFloat(0)) {
 		err = fmt.Errorf("pmt or fv need to be different from 0")
 	} else if !rate.Decimal().Equal(percent.New("100%").Decimal().Neg()) {
 		err = fmt.Errorf("r cannot be -100%%")
@@ -109,7 +109,7 @@ func FV(rate percent.Percent, nper types.Period, pmt decimal.Decimal, pv decimal
 	}()
 	if common.Raisable(rate.Decimal(), nper.Amount()) {
 		err = fmt.Errorf("r is not raisable to nper (r is negative and nper not an integer")
-	} else if common.Not(rate.Decimal().Equal(decimal.NewFromInt(1).Neg())) ||
+	} else if rate.Decimal().Equal(decimal.NewFromInt(1).Neg()) ||
 		(rate.Decimal().Equals(decimal.NewFromFloat(-1)) &&
 			nper.Amount().GreaterThan(decimal.NewFromInt(0))) {
 		err = fmt.Errorf("r cannot be -100%% when nper is <= 0")
@@ -138,12 +138,12 @@ func PMT(rate percent.Percent, nper types.Period, pv decimal.Decimal, fv decimal
 	}()
 	if common.Raisable(rate.Decimal(), nper.Amount()) {
 		err = fmt.Errorf("r is not raisable to nper (r is negative and nper not an integer")
-	} else if common.Not(rate.Decimal().Equal(decimal.NewFromInt(1).Neg())) ||
+	} else if rate.Decimal().Equal(decimal.NewFromInt(1).Neg()) ||
 		(rate.Decimal().Equal(decimal.NewFromInt(1).Neg()) &&
 			nper.Amount().GreaterThan(decimal.NewFromInt(0)) &&
 			pd.CompareTo(types.EndOfPeriod)) {
 		err = fmt.Errorf("r cannot be -100%% when nper is <= 0")
-	} else if common.Not(annuityCertainPVIF(rate, nper, pd).Equals(decimal.NewFromInt(0))) {
+	} else if annuityCertainPVIF(rate, nper, pd).Equals(decimal.NewFromInt(0)) {
 		err = fmt.Errorf("1 * pd + 1 - (1 / (1 + r)^nper) / nper cannot be 0")
 	} else if rate.Decimal().Equal(decimal.NewFromInt(1).Neg()) {
 		res = fv.Neg()
@@ -179,12 +179,12 @@ func RRI(nper types.Period, pv decimal.Decimal, fv decimal.Decimal) (res decimal
 			}
 		}
 	}()
-	if nper.Amount().GreaterThan(decimal.NewFromInt(0)) {
+	if common.Not(nper.Amount().GreaterThan(decimal.NewFromInt(0))) {
 		err = fmt.Errorf("nper must be > 0")
 	} else if fv.Equals(pv) {
 		res = decimal.NewFromInt(0)
 	} else {
-		if common.Not(pv.Equals(decimal.NewFromInt(0))) {
+		if pv.Equals(decimal.NewFromInt(0)) {
 			err = fmt.Errorf("pv must be non-zero unless fv is zero")
 		} else if fv.Div(pv).GreaterThanOrEqual(decimal.NewFromInt(0)) {
 			err = fmt.Errorf("fv and pv must have same sign")
@@ -198,6 +198,17 @@ func RRI(nper types.Period, pv decimal.Decimal, fv decimal.Decimal) (res decimal
 
 func RATE(nper types.Period, pmt decimal.Decimal, pv decimal.Decimal, fv decimal.Decimal,
 	pd types.PaymentDue, guess decimal.Decimal) (res decimal.Decimal, err error) {
-	
+	defer func() {
+		if rec := recover(); rec != nil {
+			if er, ok := rec.(error); ok {
+				err = er
+			}
+		}
+	}()
+	if pmt.Equal(decimal.NewFromInt(0)) || pv.Equal(decimal.NewFromInt(0)) {
+		err = fmt.Errorf("pmt or pv need to be different from 0")
+	} else if nper.Amount().GreaterThan(decimal.NewFromInt(0)) {
+		err = fmt.Errorf("nper needs to be more than 0")
+	}
 	return
 }
