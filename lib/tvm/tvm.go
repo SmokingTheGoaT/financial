@@ -1,9 +1,9 @@
 package tvm
 
 import (
+	"financial/types"
 	"financial/utils/common"
 	"financial/utils/percent"
-	"financial/utils/types"
 	"fmt"
 	"github.com/shopspring/decimal"
 )
@@ -138,16 +138,66 @@ func PMT(rate percent.Percent, nper types.Period, pv decimal.Decimal, fv decimal
 	}()
 	if common.Raisable(rate.Decimal(), nper.Amount()) {
 		err = fmt.Errorf("r is not raisable to nper (r is negative and nper not an integer")
-	} else if common.Not(rate.Decimal().Equal(decimal.NewFromInt(1).Neg())) || (rate.Decimal().Equal(decimal.NewFromInt(1).Neg()) &&
-		nper.Amount().GreaterThan(decimal.NewFromInt(0)) &&
-		pd.CompareTo(types.EndOfPeriod)) {
+	} else if common.Not(rate.Decimal().Equal(decimal.NewFromInt(1).Neg())) ||
+		(rate.Decimal().Equal(decimal.NewFromInt(1).Neg()) &&
+			nper.Amount().GreaterThan(decimal.NewFromInt(0)) &&
+			pd.CompareTo(types.EndOfPeriod)) {
 		err = fmt.Errorf("r cannot be -100%% when nper is <= 0")
 	} else if common.Not(annuityCertainPVIF(rate, nper, pd).Equals(decimal.NewFromInt(0))) {
-		err = fmt.Errorf("1 * pd + 1 - (1 / (1 + r)^nper) / nper has to be <> 0")
+		err = fmt.Errorf("1 * pd + 1 - (1 / (1 + r)^nper) / nper cannot be 0")
 	} else if rate.Decimal().Equal(decimal.NewFromInt(1).Neg()) {
 		res = fv.Neg()
 	} else {
 		res = pmt(rate, nper, pv, fv, pd)
 	}
+	return
+}
+
+func NPER(rate percent.Percent, pmt decimal.Decimal, pv decimal.Decimal, fv decimal.Decimal, pd types.PaymentDue) (
+	res decimal.Decimal, err error) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			if er, ok := rec.(error); ok {
+				err = er
+			}
+		}
+	}()
+	if rate.Decimal().Equal(decimal.NewFromInt(0)) &&
+		common.Not(pmt.Equal(decimal.NewFromInt(0))) {
+		res = decimal.NewFromInt(1).Neg().Mul(pv.Add(fv)).Div(pmt)
+	} else {
+		res = nper(rate, pmt, pv, fv, pd)
+	}
+	return
+}
+
+func RRI(nper types.Period, pv decimal.Decimal, fv decimal.Decimal) (res decimal.Decimal, err error) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			if er, ok := rec.(error); ok {
+				err = er
+			}
+		}
+	}()
+	if nper.Amount().GreaterThan(decimal.NewFromInt(0)) {
+		err = fmt.Errorf("nper must be > 0")
+	} else if fv.Equals(pv) {
+		res = decimal.NewFromInt(0)
+	} else {
+		if common.Not(pv.Equals(decimal.NewFromInt(0))) {
+			err = fmt.Errorf("pv must be non-zero unless fv is zero")
+		} else if fv.Div(pv).GreaterThanOrEqual(decimal.NewFromInt(0)) {
+			err = fmt.Errorf("fv and pv must have same sign")
+		} else {
+			res = common.Pow(fv.Div(pv),
+				decimal.NewFromInt(1).Div(nper.Amount())).Sub(decimal.NewFromInt(1))
+		}
+	}
+	return
+}
+
+func RATE(nper types.Period, pmt decimal.Decimal, pv decimal.Decimal, fv decimal.Decimal,
+	pd types.PaymentDue, guess decimal.Decimal) (res decimal.Decimal, err error) {
+	
 	return
 }

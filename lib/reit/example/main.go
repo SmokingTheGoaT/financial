@@ -1,6 +1,8 @@
 package main
 
 import (
+	"financial/types"
+	"fmt"
 	"time"
 )
 
@@ -66,4 +68,12 @@ func main() {
 	//	decimal.NewFromInt(0), types.EndOfPeriod)
 	//
 	//fmt.Println(pmt.String())
+
+	p1 := types.Yearly.Term(24)
+	p2 := types.Monthly.Term(20)
+	p3 := types.Quarterly.Term(8)
+
+	fmt.Println(p1.Convert(types.ToMonths()).String())
+	fmt.Println(p2.Convert(types.ToQuarters()).String())
+	fmt.Println(p3.Convert(types.ToYears()).String())
 }

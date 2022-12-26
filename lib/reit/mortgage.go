@@ -1,9 +1,9 @@
 package reit
 
 import (
+	"financial/types"
 	"financial/utils/currency"
 	"financial/utils/percent"
-	"financial/utils/types"
 )
 
 type (
@@ -27,12 +27,6 @@ type (
 
 func Mortgage(request MortgageRequest) (res MortgageResponse) {
 	res = MortgageResponse{}
-	//res.MonthlyMortgage = loan.New(
-	//	loan.Amortized(
-	//		request.PropertySalePrice,
-	//		request.InterestRate,
-	//		request.Term,
-	//	),
-	//)
+	//res.MonthlyMortgage = tvm.PMT()
 	return
 }
