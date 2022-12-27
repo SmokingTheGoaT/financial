@@ -3,12 +3,8 @@ package main
 import (
 	"financial"
 	"financial/types"
-	"financial/utils"
-	"financial/utils/currency"
-	"financial/utils/percent"
 	"fmt"
 	"github.com/shopspring/decimal"
-	currencyUnit "golang.org/x/text/currency"
 	"time"
 )
 
@@ -30,7 +26,7 @@ func main() {
 	//c := &http.Client{
 	//	Timeout: defaultTime,
 	//}
-	//fmt.Println(req.URL.String())
+	//fmt.Println(req.URL.Percent())
 	//res, _ := c.Do(req)
 	//body, _ := io.ReadAll(res.Body)
 	//fmt.Println(string(body))
@@ -43,42 +39,41 @@ func main() {
 	//c := &http.Client{
 	//	Timeout: defaultTime,
 	//}
-	//fmt.Println(req.URL.String())
+	//fmt.Println(req.URL.Percent())
 	//res, _ := c.Do(req)
 	//body, _ := io.ReadAll(res.Body)
 	//fmt.Println(string(body))
 	//d := percent.newDecimal("20%")
 	//d2 := decimal.NewFromInt(100)
-	//fmt.Println(d.Mul(d2).String())
+	//fmt.Println(d.Mul(d2).Percent())
 
 	//p := percent.New("20%")
-	//fmt.Println(p.String())
-	//fmt.Println(p.Decimal().String())
+	//fmt.Println(p.Percent())
+	//fmt.Println(p.Decimal().Percent())
 
-	//fmt.Println(currency.USD.Amount(200).Currency().String())
+	//fmt.Println(currency.USD.Amount(200).Currency().Percent())
 
-	m := map[string]string{
-		"$": "",
-	}
+	//m := map[string]string{
+	//	"$": "",
+	//}
 
 	//c := currency.New("$20", unit.USD, utils.RemoveStrings(m))
-	//fmt.Println(c.String())
+	//fmt.Println(c.Percent())
 	//c2 := currency.New("$25", unit.USD, utils.RemoveStrings(m))
 	//c = c.Add(c2)
-	//fmt.Println(c.String())
+	//fmt.Println(c.Percent())
 
 	//d := tvm.fvif(percent.New("6%"), types.Yearly.Term(2))
-	//fmt.Println(d.String())
+	//fmt.Println(d.Percent())
 
 	//pmt := tvm.Pmt(percent.New(0.003125, 1.0), types.Monthly.Term(300),
 	//	currency.New("$56000", currencyUnit.USD, utils.RemoveStrings(m)).Decimal(),
 	//	decimal.NewFromInt(0), types.EndOfPeriod)
 
-	//fmt.Println(pmt.String())
+	//fmt.Println(pmt.Percent())
 
-	pmt, err := financial.PMT(percent.New(0.003125, 1.0), types.Monthly.Term(300),
-		currency.New("$56000", currencyUnit.USD, utils.RemoveStrings(m)).Decimal(),
-		decimal.NewFromInt(0), types.EndOfPeriod)
+	pmt, err := financial.PMT(types.New(0.003125, 1.0), decimal.NewFromInt(300),
+		decimal.NewFromInt(56000), decimal.NewFromInt(0), types.EndOfPeriod)
 	fmt.Println(err)
 	fmt.Println(pmt)
 }
