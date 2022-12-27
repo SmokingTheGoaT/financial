@@ -1,4 +1,4 @@
-package common
+package utils
 
 import (
 	"fmt"
@@ -174,5 +174,5 @@ func FindRoot(f decimal.Decimal, guess decimal.Decimal) (r decimal.Decimal, err 
 }
 
 func ApproxEqual(x, y decimal.Decimal) (ok bool) {
-	return x.Sub(y).Abs().LessThan(decimal.NewFromInt(1e-10))
+	return x.Sub(y).Abs().LessThan(decimal.NewFromFloat(1e-10))
 }

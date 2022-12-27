@@ -1,4 +1,4 @@
-package percent
+package types
 
 import (
 	"financial/utils"
@@ -6,31 +6,34 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+//TODO: Refactor the following type into a rate unit instead.
+//The new Rate type should include the following, rate Period.
+
 type (
 	unit struct {
-		v decimal.Decimal
+		rate decimal.Decimal
 	}
 
-	Percent interface {
+	Rate interface {
 		Decimal() decimal.Decimal
-		String() (value string)
+		Percent() string
 	}
 )
 
-func New(i interface{}, opts ...interface{}) Percent {
+func New(i interface{}, opts ...interface{}) Rate {
 	v := newDecimal(i, opts...)
 	return &unit{
-		v: v,
+		rate: v,
 	}
 }
 
 func (u *unit) Decimal() decimal.Decimal {
-	return u.v
+	return u.rate
 }
 
-func (u *unit) String() (value string) {
+func (u *unit) Percent() (value string) {
 	d2 := decimal.NewFromInt(100)
-	value = fmt.Sprintf("%s%%", u.v.Mul(d2).String())
+	value = fmt.Sprintf("%s%%", u.rate.Mul(d2).String())
 	return
 }
 
