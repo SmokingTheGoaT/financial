@@ -1,4 +1,4 @@
-package tvm
+package fin
 
 import (
 	"financial/types"
@@ -6,6 +6,7 @@ import (
 	"financial/utils/percent"
 	"fmt"
 	"github.com/shopspring/decimal"
+	_ "unsafe"
 )
 
 func fvif(rate percent.Percent, nper types.Period) (fvif decimal.Decimal) {
@@ -76,7 +77,8 @@ func nper(rate percent.Percent, pmt decimal.Decimal, pv decimal.Decimal, fv deci
 	return
 }
 
-func PV(rate percent.Percent, nper types.Period, pmt decimal.Decimal, fv decimal.Decimal, pd types.PaymentDue) (
+//go:linkname calcPv financial.PV
+func calcPv(rate percent.Percent, nper types.Period, pmt decimal.Decimal, fv decimal.Decimal, pd types.PaymentDue) (
 	res decimal.Decimal, err error) {
 	defer func() {
 		if rec := recover(); rec != nil {
@@ -90,7 +92,7 @@ func PV(rate percent.Percent, nper types.Period, pmt decimal.Decimal, fv decimal
 	} else if pmt.Equal(decimal.NewFromInt(0)) ||
 		fv.Equals(decimal.NewFromFloat(0)) {
 		err = fmt.Errorf("pmt or fv need to be different from 0")
-	} else if !rate.Decimal().Equal(percent.New("100%").Decimal().Neg()) {
+	} else if rate.Decimal().Equal(percent.New("100%").Decimal().Neg()) {
 		err = fmt.Errorf("r cannot be -100%%")
 	} else {
 		res = pv(rate, nper, pmt, fv, pd)
@@ -98,7 +100,8 @@ func PV(rate percent.Percent, nper types.Period, pmt decimal.Decimal, fv decimal
 	return
 }
 
-func FV(rate percent.Percent, nper types.Period, pmt decimal.Decimal, pv decimal.Decimal, pd types.PaymentDue) (
+//go:linkname calcFv financial.FV
+func calcFv(rate percent.Percent, nper types.Period, pmt decimal.Decimal, pv decimal.Decimal, pd types.PaymentDue) (
 	res decimal.Decimal, err error) {
 	defer func() {
 		if rec := recover(); rec != nil {
@@ -127,7 +130,8 @@ func FV(rate percent.Percent, nper types.Period, pmt decimal.Decimal, pv decimal
 	return
 }
 
-func PMT(rate percent.Percent, nper types.Period, pv decimal.Decimal, fv decimal.Decimal, pd types.PaymentDue) (
+//go:linkname calcPmt financial.PMT
+func calcPmt(rate percent.Percent, nper types.Period, pv decimal.Decimal, fv decimal.Decimal, pd types.PaymentDue) (
 	res decimal.Decimal, err error) {
 	defer func() {
 		if rec := recover(); rec != nil {
@@ -153,7 +157,8 @@ func PMT(rate percent.Percent, nper types.Period, pv decimal.Decimal, fv decimal
 	return
 }
 
-func NPER(rate percent.Percent, pmt decimal.Decimal, pv decimal.Decimal, fv decimal.Decimal, pd types.PaymentDue) (
+//go:linkname calcNper financial.NPER
+func calcNper(rate percent.Percent, pmt decimal.Decimal, pv decimal.Decimal, fv decimal.Decimal, pd types.PaymentDue) (
 	res decimal.Decimal, err error) {
 	defer func() {
 		if rec := recover(); rec != nil {
@@ -171,7 +176,8 @@ func NPER(rate percent.Percent, pmt decimal.Decimal, pv decimal.Decimal, fv deci
 	return
 }
 
-func RRI(nper types.Period, pv decimal.Decimal, fv decimal.Decimal) (res decimal.Decimal, err error) {
+//go:linkname calcRri financial.RRI
+func calcRri(nper types.Period, pv decimal.Decimal, fv decimal.Decimal) (res decimal.Decimal, err error) {
 	defer func() {
 		if rec := recover(); rec != nil {
 			if er, ok := rec.(error); ok {
@@ -179,7 +185,7 @@ func RRI(nper types.Period, pv decimal.Decimal, fv decimal.Decimal) (res decimal
 			}
 		}
 	}()
-	if common.Not(nper.Amount().GreaterThan(decimal.NewFromInt(0))) {
+	if nper.Amount().GreaterThan(decimal.NewFromInt(0)) {
 		err = fmt.Errorf("nper must be > 0")
 	} else if fv.Equals(pv) {
 		res = decimal.NewFromInt(0)
@@ -196,7 +202,19 @@ func RRI(nper types.Period, pv decimal.Decimal, fv decimal.Decimal) (res decimal
 	return
 }
 
-func RATE(nper types.Period, pmt decimal.Decimal, pv decimal.Decimal, fv decimal.Decimal,
+//go:linkname calcRate financial.RATE
+func calcRate(nper types.Period, pmt decimal.Decimal, pv decimal.Decimal, fv decimal.Decimal,
+	pd types.PaymentDue, opts ...decimal.Decimal) (res decimal.Decimal, err error) {
+	switch len(opts) > 0 && len(opts) < 2 {
+	case true:
+		res, err = _calcRate(nper, pmt, pv, fv, pd, opts[0])
+	case false:
+		res, err = _calcRate(nper, pmt, pv, fv, pd, decimal.NewFromFloat(0.1))
+	}
+	return
+}
+
+func _calcRate(nper types.Period, pmt decimal.Decimal, pv decimal.Decimal, fv decimal.Decimal,
 	pd types.PaymentDue, guess decimal.Decimal) (res decimal.Decimal, err error) {
 	defer func() {
 		if rec := recover(); rec != nil {
@@ -209,6 +227,64 @@ func RATE(nper types.Period, pmt decimal.Decimal, pv decimal.Decimal, fv decimal
 		err = fmt.Errorf("pmt or pv need to be different from 0")
 	} else if nper.Amount().GreaterThan(decimal.NewFromInt(0)) {
 		err = fmt.Errorf("nper needs to be more than 0")
+	} else if common.HaveRightSigns(pmt, pv, fv) {
+		err = fmt.Errorf("there must be at least a change in sign in pv, fv and pmt")
+	} else if fv.Equal(decimal.NewFromInt(0)) &&
+		pv.Equal(decimal.NewFromInt(0)) {
+		if pmt.LessThan(decimal.NewFromInt(0)) {
+			res = decimal.NewFromInt(1).Neg()
+		} else {
+			res = decimal.NewFromInt(1)
+		}
+	} else {
+		var f func(r percent.Percent) (res decimal.Decimal, err error)
+		f = func(r percent.Percent) (res decimal.Decimal, err error) {
+			if res, err = calcFv(r, nper, pmt, pv, pd); err == nil {
+				res.Sub(fv)
+			}
+			return
+		}
+		if res, err = f(percent.New("0%")); err == nil {
+			res, err = common.FindRoot(res, guess)
+		}
+	}
+	return
+}
+
+//go:linkname calcFvScheduler financial.FVSchedule
+func calcFvScheduler(pv decimal.Decimal, interests []decimal.Decimal) (res decimal.Decimal, err error) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			if er, ok := rec.(error); ok {
+				err = er
+			}
+		}
+	}()
+	res = pv
+	for _, i := range interests {
+		res = res.Mul(decimal.NewFromInt(1).Add(i))
+	}
+	return
+}
+
+//go:linkname calcPDuration financial.PDuration
+func calcPDuration(rate percent.Percent, pv, fv decimal.Decimal) (res decimal.Decimal, err error) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			if er, ok := rec.(error); ok {
+				err = er
+			}
+		}
+	}()
+	if common.Not(rate.Decimal().GreaterThan(decimal.NewFromInt(0))) {
+		err = fmt.Errorf("rate must be positive")
+	} else if common.Not(pv.GreaterThan(decimal.NewFromInt(0))) {
+		err = fmt.Errorf("pv must be positive")
+	} else if common.Not(fv.GreaterThan(decimal.NewFromInt(0))) {
+		err = fmt.Errorf("fv must be positive")
+	} else {
+		res = common.Ln(fv).Sub(common.Ln(pv))
+		res = res.Div(common.Ln(decimal.NewFromInt(1).Add(rate.Decimal())))
 	}
 	return
 }

@@ -1,8 +1,14 @@
 package main
 
 import (
+	"financial"
 	"financial/types"
+	"financial/utils"
+	"financial/utils/currency"
+	"financial/utils/percent"
 	"fmt"
+	"github.com/shopspring/decimal"
+	currencyUnit "golang.org/x/text/currency"
 	"time"
 )
 
@@ -51,9 +57,10 @@ func main() {
 
 	//fmt.Println(currency.USD.Amount(200).Currency().String())
 
-	//m := map[string]string{
-	//	"$": "",
-	//}
+	m := map[string]string{
+		"$": "",
+	}
+
 	//c := currency.New("$20", unit.USD, utils.RemoveStrings(m))
 	//fmt.Println(c.String())
 	//c2 := currency.New("$25", unit.USD, utils.RemoveStrings(m))
@@ -66,14 +73,12 @@ func main() {
 	//pmt := tvm.Pmt(percent.New(0.003125, 1.0), types.Monthly.Term(300),
 	//	currency.New("$56000", currencyUnit.USD, utils.RemoveStrings(m)).Decimal(),
 	//	decimal.NewFromInt(0), types.EndOfPeriod)
-	//
+
 	//fmt.Println(pmt.String())
 
-	p1 := types.Yearly.Term(24)
-	p2 := types.Monthly.Term(20)
-	p3 := types.Quarterly.Term(8)
-
-	fmt.Println(p1.Convert(types.ToMonths()).String())
-	fmt.Println(p2.Convert(types.ToQuarters()).String())
-	fmt.Println(p3.Convert(types.ToYears()).String())
+	pmt, err := financial.PMT(percent.New(0.003125, 1.0), types.Monthly.Term(300),
+		currency.New("$56000", currencyUnit.USD, utils.RemoveStrings(m)).Decimal(),
+		decimal.NewFromInt(0), types.EndOfPeriod)
+	fmt.Println(err)
+	fmt.Println(pmt)
 }
