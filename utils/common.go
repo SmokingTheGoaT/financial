@@ -148,7 +148,7 @@ func Bisection(f decimal.Decimal, a decimal.Decimal, b decimal.Decimal, count in
 					} else if fa.Mul(fmid).GreaterThan(decimal.NewFromInt(0)) {
 						r, err = helper(f, midvalue, b, newCount, precision)
 					} else {
-						err = fmt.Errorf("Bisection: It should never get here")
+						err = fmt.Errorf("bisection: It should never get here")
 					}
 				}
 			}
@@ -175,4 +175,80 @@ func FindRoot(f decimal.Decimal, guess decimal.Decimal) (r decimal.Decimal, err 
 
 func ApproxEqual(x, y decimal.Decimal) (ok bool) {
 	return x.Sub(y).Abs().LessThan(decimal.NewFromFloat(1e-10))
+}
+
+// NewDecimalSlice option input set pattern = {[none], [startElem, endElem, stepBy]}
+func NewIntDecimalSlice(opts ...decimal.Decimal) (re []decimal.Decimal) {
+	re = []decimal.Decimal{}
+	switch len(opts) {
+	case 2:
+		init := opts[0]
+		count := opts[1].Sub(opts[0]).Abs()
+		for init.GreaterThan(count.Add(decimal.NewFromInt(1))) {
+			re = append(re, init)
+			init = init.Add(decimal.NewFromInt(1))
+		}
+	case 3:
+		init, end, step := opts[0], opts[1], opts[2]
+		count := opts[1].Sub(opts[0]).Abs()
+		i := func() decimal.Decimal {
+			if step.IsNegative() {
+				return init
+			} else {
+				return end
+			}
+		}()
+		for init.GreaterThan(count.Add(decimal.NewFromInt(1))) {
+			re = func() []decimal.Decimal {
+				if step.IsNegative() {
+					r := append(re, i)
+					i = i.Sub(decimal.NewFromInt(1))
+					return r
+				} else {
+					r := append(re, i)
+					i = i.Add(decimal.NewFromInt(1))
+					return r
+				}
+			}()
+		}
+	}
+	return
+}
+
+type DecimalIntSequence struct {
+	Acc []decimal.Decimal
+}
+
+func NewDecimalIntSeq(opts ...decimal.Decimal) *DecimalIntSequence {
+	return &DecimalIntSequence{
+		Acc: NewIntDecimalSlice(opts...),
+	}
+}
+
+func (da *DecimalIntSequence) Append(dec decimal.Decimal) {
+	da.Acc = append(da.Acc, dec)
+}
+
+func (da *DecimalIntSequence) Fold(f func(acc, per decimal.Decimal) (decimal.Decimal, error),
+	i decimal.Decimal) (acc decimal.Decimal, err error) {
+	if acc, err = f(acc, i); err == nil {
+		for _, item := range da.Acc {
+			if acc, err = f(acc, item); err != nil {
+				break
+			}
+		}
+	}
+	return
+}
+
+func AggrBetween(startPeriod, endPeriod decimal.Decimal, f func(acc, per decimal.Decimal) (decimal.Decimal, error),
+	initialValue decimal.Decimal) (a decimal.Decimal, err error) {
+	var acc *DecimalIntSequence
+	if startPeriod.LessThanOrEqual(endPeriod) {
+		acc = NewDecimalIntSeq(startPeriod, endPeriod, decimal.NewFromInt(1))
+	} else {
+		acc = NewDecimalIntSeq(startPeriod, endPeriod, decimal.NewFromInt(1).Neg())
+	}
+	a, err = acc.Fold(f, initialValue)
+	return
 }

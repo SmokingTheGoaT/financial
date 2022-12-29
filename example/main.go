@@ -1,10 +1,8 @@
 package main
 
 import (
-	"financial"
-	"financial/types"
 	"fmt"
-	"github.com/shopspring/decimal"
+	"math"
 	"time"
 )
 
@@ -71,9 +69,25 @@ func main() {
 	//	decimal.NewFromInt(0), types.EndOfPeriod)
 
 	//fmt.Println(pmt.Percent())
+	//
+	//pmt, err := financial.PMT(types.New(0.003125, 1.0), decimal.NewFromInt(300),
+	//	decimal.NewFromInt(56000), decimal.NewFromInt(0), types.EndOfPeriod)
+	//fmt.Println(err)
+	//fmt.Println(pmt)
 
-	pmt, err := financial.PMT(types.New(0.003125, 1.0), decimal.NewFromInt(300),
-		decimal.NewFromInt(56000), decimal.NewFromInt(0), types.EndOfPeriod)
-	fmt.Println(err)
-	fmt.Println(pmt)
+	init := 3
+	end := 10
+	count := int(math.Abs(float64(end) + 1))
+	re := []int{}
+	for i := init; i < count; i++ {
+		switch {
+		case i == init:
+			re = append(re, init)
+		case i == end:
+			re = append(re, end)
+		default:
+			re = append(re, i)
+		}
+	}
+	fmt.Println(re)
 }

@@ -88,8 +88,7 @@ func calcPv(rate types.Rate, nper, pmt, fv decimal.Decimal, pd types.PaymentDue)
 	}()
 	if utils.Raisable(rate.Decimal(), nper) {
 		err = fmt.Errorf("r is not raisable to nper (r is less than -1 and nper not an integer")
-	} else if pmt.Equal(decimal.NewFromInt(0)) ||
-		fv.Equals(decimal.NewFromFloat(0)) {
+	} else if pmt.IsZero() || fv.IsZero() {
 		err = fmt.Errorf("pmt or fv need to be different from 0")
 	} else if rate.Decimal().Equal(types.New("100%").Decimal().Neg()) {
 		err = fmt.Errorf("r cannot be -100%%")
@@ -166,8 +165,7 @@ func calcNper(rate types.Rate, pmt, pv, fv decimal.Decimal, pd types.PaymentDue)
 			}
 		}
 	}()
-	if rate.Decimal().Equal(decimal.NewFromInt(0)) &&
-		utils.Not(pmt.Equal(decimal.NewFromInt(0))) {
+	if rate.Decimal().IsZero() && utils.Not(pmt.IsZero()) {
 		res = decimal.NewFromInt(1).Neg().Mul(pv.Add(fv)).Div(pmt)
 	} else {
 		res = nper(rate, pmt, pv, fv, pd)
@@ -189,7 +187,7 @@ func calcRri(nper, pv, fv decimal.Decimal) (res decimal.Decimal, err error) {
 	} else if fv.Equals(pv) {
 		res = decimal.NewFromInt(0)
 	} else {
-		if pv.Equals(decimal.NewFromInt(0)) {
+		if pv.IsZero() {
 			err = fmt.Errorf("pv must be non-zero unless fv is zero")
 		} else if fv.Div(pv).GreaterThanOrEqual(decimal.NewFromInt(0)) {
 			err = fmt.Errorf("fv and pv must have same sign")
@@ -221,14 +219,13 @@ func _calcRate(nper, pmt, pv, fv, guess decimal.Decimal, pd types.PaymentDue) (r
 			}
 		}
 	}()
-	if pmt.Equal(decimal.NewFromInt(0)) || pv.Equal(decimal.NewFromInt(0)) {
+	if pmt.IsZero() || pv.IsZero() {
 		err = fmt.Errorf("pmt or pv need to be different from 0")
 	} else if nper.GreaterThan(decimal.NewFromInt(0)) {
 		err = fmt.Errorf("nper needs to be more than 0")
 	} else if utils.HaveRightSigns(pmt, pv, fv) {
 		err = fmt.Errorf("there must be at least a change in sign in pv, fv and pmt")
-	} else if fv.Equal(decimal.NewFromInt(0)) &&
-		pv.Equal(decimal.NewFromInt(0)) {
+	} else if fv.IsZero() && pv.IsZero() {
 		if pmt.LessThan(decimal.NewFromInt(0)) {
 			res = decimal.NewFromInt(1).Neg()
 		} else {
@@ -249,7 +246,7 @@ func _calcRate(nper, pmt, pv, fv, guess decimal.Decimal, pd types.PaymentDue) (r
 	return
 }
 
-//go:linkname calcFvScheduler financial.FVSchedule
+//go:linkname calcFvScheduler financial.FVSCHEDULE
 func calcFvScheduler(pv decimal.Decimal, interests []decimal.Decimal) (res decimal.Decimal, err error) {
 	defer func() {
 		if rec := recover(); rec != nil {
@@ -265,7 +262,7 @@ func calcFvScheduler(pv decimal.Decimal, interests []decimal.Decimal) (res decim
 	return
 }
 
-//go:linkname calcPDuration financial.PDuration
+//go:linkname calcPDuration financial.PDURATION
 func calcPDuration(rate types.Rate, pv, fv decimal.Decimal) (res decimal.Decimal, err error) {
 	defer func() {
 		if rec := recover(); rec != nil {
